@@ -52,7 +52,23 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-    const UserCollection = client.db("Blood-Source").collection("Users");
+    const UserCollection = client.db("RealState").collection("Users");
+
+    // const verifyAdmin = async (req, res, next) => {
+    //   const email = req?.user?.email;
+    //   console.log("admin ", email);
+    //   const query = { email: email };
+    //   const user = await UserCollection.findOne(query);
+    //   console.log(user);
+    //   const isAdmin = user?.role === "admin";
+    //   console.log(isAdmin, "isadmin ni re");
+    //   if (isAdmin) {
+    //     console.log("fbhjhsdfgha");
+
+    //     next();
+    //     // return res.status(403).send({ message: "forbidden access" });
+    //   }
+    // };
 
     app.post('/jwt',  async (req, res) => {
       const user = req.body;
@@ -88,57 +104,57 @@ async function run() {
           res.send(result);
         });
 
-    app.get("/admin/:email", verifyToken, verifyAdmin, async (req, res) => {
-      console.log("asoe hlit hocche", req?.user?.email);
-      const email = req.params.email;
+    // app.get("/admin/:email", verifyToken,  async (req, res) => {
+    //   console.log("asoe hlit hocche", req?.user?.email);
+    //   const email = req.params.email;
 
-      console.log(req?.user, "emaillllllll", email);
-      if (email !== req?.user?.email) {
-        console.log("provlem");
-        return res.status(403).send({ message: "unauthorized Access" });
-      }
-      const query = { email: email };
-      const user = await UserCollection.findOne(query);
-      console.log("admin request user", user?.role);
-      let isAdmin = false;
-      if (user?.role === "admin") {
-        // isAdmin = user?.role=='admin'
-        isAdmin = true;
-        console.log(isAdmin, "sadhdiowh");
-      }
-      res.send({ isAdmin });
-    });
-    app.patch("/users/admin/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
+    //   console.log(req?.user, "emaillllllll", email);
+    //   if (email !== req?.user?.email) {
+    //     console.log("provlem");
+    //     return res.status(403).send({ message: "unauthorized Access" });
+    //   }
+    //   const query = { email: email };
+    //   const user = await UserCollection.findOne(query);
+    //   console.log("admin request user", user?.role);
+    //   let isAdmin = false;
+    //   if (user?.role === "admin") {
+    //     // isAdmin = user?.role=='admin'
+    //     isAdmin = true;
+    //     console.log(isAdmin, "sadhdiowh");
+    //   }
+    //   res.send({ isAdmin });
+    // });
+    // app.patch("/users/admin/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: new ObjectId(id) };
 
-      const UpdatedUser = {
-        $set: {
-          role: "admin",
-        },
-      };
-      const result = await UserCollection.updateOne(query, UpdatedUser);
-      console.log(result);
+    //   const UpdatedUser = {
+    //     $set: {
+    //       role: "admin",
+    //     },
+    //   };
+    //   const result = await UserCollection.updateOne(query, UpdatedUser);
+    //   console.log(result);
 
-      res.send(result);
-    });
-    app.put("/user-update", verifyToken, verifyAdmin, async (req, res) => {
-      const email = req?.query.email;
-      const role = req?.body.role;
-      console.log("", email, role);
-      const filter = { email: email };
+    //   res.send(result);
+    // });
+    // app.put("/user-update", verifyToken, verifyAdmin, async (req, res) => {
+    //   const email = req?.query.email;
+    //   const role = req?.body.role;
+    //   console.log("", email, role);
+    //   const filter = { email: email };
 
-      const update = {
-        $set: {
-          role: role,
-        },
-      };
-      const options = { upsert: false };
+    //   const update = {
+    //     $set: {
+    //       role: role,
+    //     },
+    //   };
+    //   const options = { upsert: false };
 
-      const result = await UserCollection.updateOne(filter, update, options);
-      console.log(result);
-      res.send(result);
-    });
+    //   const result = await UserCollection.updateOne(filter, update, options);
+    //   console.log(result);
+    //   res.send(result);
+    // });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
