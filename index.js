@@ -19,20 +19,35 @@ app.use(
 app.use(cookieParser());
 
 
+// const verifyToken = (req, res, next) => {
+//   const token = req?.cookies?.token;
+//   console.log(token);
+   
+//   if (!token) {
+//       return res.status(401).send({ message: 'unauthorized access' })
+//   }
+//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+//       if (err) {
+//         console.log(err);
+//           return res.status(401).send({ message: 'unauthorized access' })
+//       }
+//       req.user = decoded;
+//       console.log(req.user);
+//       next();
+//   })
+// }
+
 const verifyToken = (req, res, next) => {
   const token = req?.cookies?.token;
-  console.log(token);
    
   if (!token) {
       return res.status(401).send({ message: 'unauthorized access' })
   }
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
       if (err) {
-        console.log(err);
           return res.status(401).send({ message: 'unauthorized access' })
       }
       req.user = decoded;
-      console.log(req.user);
       next();
   })
 }
@@ -54,27 +69,44 @@ async function run() {
     await client.connect();
     const UserCollection = client.db("RealState").collection("Users");
 
-    // const verifyAdmin = async (req, res, next) => {
-    //   const email = req?.user?.email;
-    //   console.log("admin ", email);
-    //   const query = { email: email };
-    //   const user = await UserCollection.findOne(query);
-    //   console.log(user);
-    //   const isAdmin = user?.role === "admin";
-    //   console.log(isAdmin, "isadmin ni re");
-    //   if (isAdmin) {
-    //     console.log("fbhjhsdfgha");
+    const verifyAdmin = async (req, res, next) => {
+      const email = req?.user?.email;
+      console.log("admin ", email);
+      const query = { email: email };
+      const user = await UserCollection.findOne(query);
+      console.log(user);
+      const isAdmin = user?.role === "admin";
+      console.log(isAdmin, "isadmin ni re");
+      if (isAdmin) {
+        console.log("fbhjhsdfgha");
 
-    //     next();
-    //     // return res.status(403).send({ message: "forbidden access" });
-    //   }
-    // };
+        next();
+        // return res.status(403).send({ message: "forbidden access" });
+      }
+    };
+    const verifyAgent = async (req, res, next) => {
+      const email = req?.user?.email;
+      console.log("admin ", email);
+      const query = { email: email };
+      const user = await UserCollection.findOne(query);
+      console.log(user);
+      const isAdmin = user?.role === "admin";
+      console.log(isAdmin, "isadmin ni re");
+      if (isAdmin) {
+        console.log("fbhjhsdfgha");
 
+        next();
+        // return res.status(403).send({ message: "forbidden access" });
+      }
+    };
+
+
+ 
     app.post('/jwt',  async (req, res) => {
       const user = req.body;
-      // console.log('user token');
+      console.log('user token',user);
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
-      // console.log('user for token', token,user);
+     
     
       res.cookie('token', token, {
           httpOnly: true,
@@ -83,10 +115,18 @@ async function run() {
       })
           .send({ success: true });
     })
+
+    app.post('/logout', async (req, res) => {
+      const user = req.body;
+      console.log('logging out', user);
+      res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+    })
+    
+
     app.post("/users", async (req, res) => {
       const User = req.body;
-      console.log("auth user", User);
       const query = { email: User?.email };
+      console.log("auth user", User,query);
       const Exitinguser = await UserCollection.findOne(query);
       if (Exitinguser) {
         console.log("user ase");
@@ -96,7 +136,7 @@ async function run() {
       console.log(result);
       return res.send(result);
     });
-    app.get("/Users", verifyToken, async (req, res) => {
+    app.get("/Users",verifyToken,  async (req, res) => {
           console.log("cheack to token", req?.user?.email);
           // console.log(req.user);
           const result = await UserCollection.find().toArray();
@@ -104,40 +144,97 @@ async function run() {
           res.send(result);
         });
 
-    // app.get("/admin/:email", verifyToken,  async (req, res) => {
-    //   console.log("asoe hlit hocche", req?.user?.email);
-    //   const email = req.params.email;
+    app.get("/admin/:email", verifyToken,verifyAdmin,  async (req, res) => {
+      console.log("asoe hlit hocche", req?.user?.email);
+      const email = req.params.email;
 
-    //   console.log(req?.user, "emaillllllll", email);
-    //   if (email !== req?.user?.email) {
-    //     console.log("provlem");
-    //     return res.status(403).send({ message: "unauthorized Access" });
-    //   }
-    //   const query = { email: email };
-    //   const user = await UserCollection.findOne(query);
-    //   console.log("admin request user", user?.role);
-    //   let isAdmin = false;
-    //   if (user?.role === "admin") {
-    //     // isAdmin = user?.role=='admin'
-    //     isAdmin = true;
-    //     console.log(isAdmin, "sadhdiowh");
-    //   }
-    //   res.send({ isAdmin });
+      console.log(req?.user, "emaillllllll", email);
+      if (email !== req?.user?.email) {
+        console.log("provlem");
+        return res.status(403).send({ message: "unauthorized Access" });
+      }
+      const query = { email: email };
+      const user = await UserCollection.findOne(query);
+      console.log("admin request user", user?.role);
+      let isAdmin = false;
+      if (user?.role === "admin") {
+        // isAdmin = user?.role=='admin'
+        isAdmin = true;
+        console.log(isAdmin, "admin");
+      }
+      res.send({ isAdmin });
+    });
+    app.get("/Agent/:email", verifyToken,  async (req, res) => {
+      console.log("asoe hlit hocche", req?.user?.email);
+      const email = req.params.email;
+
+      console.log(req?.user, "emaillllllll", email);
+      if (email !== req?.user?.email) {
+        console.log("provlem");
+        return res.status(403).send({ message: "unauthorized Access" });
+      }
+      const query = { email: email };
+      const user = await UserCollection.findOne(query);
+      console.log("Agent request user", user?.role);
+      let isAgent = false;
+      if (user?.role === "Agent") {
+        // isAgent = user?.role=='Agent'
+        isAgent = true;
+        console.log(isAgent, "Agent");
+      }
+      console.log('request last ');
+      res.send({ isAgent });
+    });
+    app.patch("/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+
+      const UpdatedUser = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await UserCollection.updateOne(query, UpdatedUser);
+      console.log(result);
+
+      res.send(result);
+    });
+   
+    // app.get("/admin-status", verifyToken, async (req, res) => {
+    //   const users = await UserCollection.estimatedDocumentCount();
+    //   // const menusItems = await MenuCollection.estimatedDocumentCount();
+    //   // const orders = await paymentsCollection.estimatedDocumentCount();
+
+    //   // const result = await paymentsCollection
+    //   //   .aggregate([
+    //   //     {
+    //   //       $group: {
+    //   //         _id: null,
+    //   //         totalRevenue: {
+    //   //           $sum: "$price",
+    //   //         },
+    //   //       },
+    //   //     },
+    //   //   ])
+    //   //   .toArray();
+    //   // // console.log(result[0]);
+    //   // const revenue = result.length > 0 ? result[0].totalRevenue : 0;
+
+    //   // const revenue = payments.reduce(
+    //   //   (total, payment) => total + payment.price,
+    //   //   0
+    //   // );
+    //   // const revenuePars = parseFloat(revenue.toFixed(2));
+    //   console.log(users);
+    //   // console.log(users, menusItems, orders, revenue);
+    //   res.send({
+    //     // orders,
+    //     // menusItems,
+    //     users,
+    //     // revenue,
+    //   });
     // });
-    // app.patch("/users/admin/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const query = { _id: new ObjectId(id) };
-
-    //   const UpdatedUser = {
-    //     $set: {
-    //       role: "admin",
-    //     },
-    //   };
-    //   const result = await UserCollection.updateOne(query, UpdatedUser);
-    //   console.log(result);
-
-    //   res.send(result);
-    // });
+   
     // app.put("/user-update", verifyToken, verifyAdmin, async (req, res) => {
     //   const email = req?.query.email;
     //   const role = req?.body.role;
