@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 
@@ -18,11 +18,10 @@ app.use(
 );
 app.use(cookieParser());
 
-
 // const verifyToken = (req, res, next) => {
 //   const token = req?.cookies?.token;
 //   console.log(token);
-   
+
 //   if (!token) {
 //       return res.status(401).send({ message: 'unauthorized access' })
 //   }
@@ -39,20 +38,21 @@ app.use(cookieParser());
 
 const verifyToken = (req, res, next) => {
   const token = req?.cookies?.token;
-   
+
   if (!token) {
-      return res.status(401).send({ message: 'unauthorized access' })
+    // return res.status(401).send({ message: "unauthorized access" });
   }
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-      if (err) {
-          return res.status(401).send({ message: 'unauthorized access' })
-      }
-      req.user = decoded;
-      next();
-  })
-}
+    if (err) {
+      return;
+      // return res.status(401).send({ message: "unauthorized access" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 
-const uri =`mongodb+srv://${process.env.USER}:${process.env.PASS}@cluster0.xrrjj6y.mongodb.net/?retryWrites=true&w=majority`
+const uri = `mongodb+srv://${process.env.USER}:${process.env.PASS}@cluster0.xrrjj6y.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -60,7 +60,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
@@ -68,6 +68,10 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const UserCollection = client.db("RealState").collection("Users");
+    const ReviewsCollection = client.db("RealState").collection("reviews");
+    const UsersPropertyCollection = client
+      .db("RealState")
+      .collection("UsersProperty");
 
     const verifyAdmin = async (req, res, next) => {
       const email = req?.user?.email;
@@ -90,7 +94,7 @@ async function run() {
       const query = { email: email };
       const user = await UserCollection.findOne(query);
       console.log(user);
-      const isAdmin = user?.role === "admin";
+      const isAdmin = user?.role === "Agent";
       console.log(isAdmin, "isadmin ni re");
       if (isAdmin) {
         console.log("fbhjhsdfgha");
@@ -100,33 +104,33 @@ async function run() {
       }
     };
 
-
- 
-    app.post('/jwt',  async (req, res) => {
+    app.post("/jwt", async (req, res) => {
       const user = req.body;
-      console.log('user token',user);
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
-     
-    
-      res.cookie('token', token, {
+      console.log("user token", user);
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+
+      res
+        .cookie("token", token, {
           httpOnly: true,
           secure: true,
-          sameSite: 'none'
-      })
-          .send({ success: true });
-    })
+          sameSite: "none",
+        })
+        .send({ success: true });
+    });
 
-    app.post('/logout', async (req, res) => {
+    app.post("/logout", async (req, res) => {
       const user = req.body;
-      console.log('logging out', user);
-      res.clearCookie('token', { maxAge: 0 }).send({ success: true })
-    })
-    
+      console.log("logging out", user);
+      res.clearCookie("token", { maxAge: 0 }).send({ success: true });
+    });
 
     app.post("/users", async (req, res) => {
       const User = req.body;
+      console.log(User);
       const query = { email: User?.email };
-      console.log("auth user", User,query);
+      console.log("auth user", User, query);
       const Exitinguser = await UserCollection.findOne(query);
       if (Exitinguser) {
         console.log("user ase");
@@ -136,15 +140,73 @@ async function run() {
       console.log(result);
       return res.send(result);
     });
-    app.get("/Users",verifyToken,  async (req, res) => {
-          console.log("cheack to token", req?.user?.email);
-          // console.log(req.user);
-          const result = await UserCollection.find().toArray();
-          // console.log(result);
-          res.send(result);
-        });
+    app.post("/addProperty/:email", verifyToken, async (req, res) => {
+      const User = req.body;
+      console.log(User);
+      const email = req?.params?.email;
+      const query = { email: email };
+      const role = "Agent";
+      const agentuser = await UserCollection.findOne(query);
+    
 
-    app.get("/admin/:email", verifyToken,verifyAdmin,  async (req, res) => {
+      // Update user role to "Agent" if not already
+      if (agentuser.role !== role) {
+        await UserCollection.updateOne(query, { $set: { role: role } });
+      }
+  
+      // Access the properties collection
+
+
+      const result = await UsersPropertyCollection.insertOne(User);
+      console.log(result);
+      return res.send(result);
+    });
+    app.get("/Users", verifyToken, verifyAdmin, async (req, res) => {
+      console.log("cheack to token", req?.user?.email);
+      // console.log(req.user);
+      const result = await UserCollection.find().toArray();
+      // console.log(result);
+      res.send(result);
+    });
+    app.get("/AdminProperties", verifyToken, verifyAdmin, async (req, res) => {
+      // console.log(req.user);
+      const result = await UsersPropertyCollection.find().toArray();
+      // console.log(result);
+      res.send(result);
+    });
+    app.get("/AdminReviews", verifyToken, verifyAdmin, async (req, res) => {
+      // console.log(req.user);
+      const result = await ReviewsCollection.find().toArray();
+      // console.log(result);
+      res.send(result);
+    });
+    app.get("/AgentProperties/:email", verifyToken, async (req, res) => {
+      const email = req?.params.email;
+  
+      const query = { email: email };
+
+      // console.log(req.user);
+      const result = await UsersPropertyCollection.find(query).toArray();
+      console.log(result);
+      res.send(result);
+    });
+
+    app.get("/manageReviews", verifyToken, verifyAdmin, async (req, res) => {
+      console.log("cheack to token", req?.user?.email);
+      // console.log(req.user);
+      const result = await ReviewsCollection.find().toArray();
+      // console.log(result);
+      res.send(result);
+    });
+    app.get("/Properties", verifyToken, verifyAdmin, async (req, res) => {
+      // console.log("cheack to token", req?.user?.email);
+      // console.log(req.user);
+      const result = await ReviewsCollection.find().toArray();
+      // console.log(result);
+      res.send(result);
+    });
+
+    app.get("/admin/:email", verifyToken, verifyAdmin, async (req, res) => {
       console.log("asoe hlit hocche", req?.user?.email);
       const email = req.params.email;
 
@@ -164,7 +226,7 @@ async function run() {
       }
       res.send({ isAdmin });
     });
-    app.get("/Agent/:email", verifyToken,  async (req, res) => {
+    app.get("/Agent/:email", verifyToken, verifyAgent, async (req, res) => {
       console.log("asoe hlit hocche", req?.user?.email);
       const email = req.params.email;
 
@@ -182,10 +244,10 @@ async function run() {
         isAgent = true;
         console.log(isAgent, "Agent");
       }
-      console.log('request last ');
+      console.log("request last ");
       res.send({ isAgent });
     });
-    app.patch("/users/admin/:id", async (req, res) => {
+    app.patch("/admin/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
 
@@ -199,7 +261,7 @@ async function run() {
 
       res.send(result);
     });
-   
+
     // app.get("/admin-status", verifyToken, async (req, res) => {
     //   const users = await UserCollection.estimatedDocumentCount();
     //   // const menusItems = await MenuCollection.estimatedDocumentCount();
@@ -234,28 +296,61 @@ async function run() {
     //     // revenue,
     //   });
     // });
-   
-    // app.put("/user-update", verifyToken, verifyAdmin, async (req, res) => {
-    //   const email = req?.query.email;
-    //   const role = req?.body.role;
-    //   console.log("", email, role);
-    //   const filter = { email: email };
 
-    //   const update = {
-    //     $set: {
-    //       role: role,
-    //     },
-    //   };
-    //   const options = { upsert: false };
+    app.put("/user-update", verifyToken, verifyAdmin, async (req, res) => {
+      const email = req?.query.email;
+      const role = req?.body.role;
+      console.log("", email, role);
+      const filter = { email: email };
 
-    //   const result = await UserCollection.updateOne(filter, update, options);
-    //   console.log(result);
-    //   res.send(result);
-    // });
+      const update = {
+        $set: {
+          role: role,
+        },
+      };
+      const options = { upsert: false };
+
+      const result = await UserCollection.updateOne(filter, update, options);
+      console.log(result);
+      res.send(result);
+    });
+    app.put(
+      "/user-update-status",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req?.query.email;
+        const status = req?.body.status;
+        console.log("", email);
+        const filter = { email: email, status };
+
+        const update = {
+          $set: {
+            status: status,
+          },
+        };
+        const options = { upsert: false };
+
+        const result = await UserCollection.updateOne(filter, update, options);
+        console.log(result);
+        res.send(result);
+      }
+    );
+
+    app.delete("/User/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await UserCollection.deleteOne(query);
+      console.log(result);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -263,12 +358,9 @@ async function run() {
 }
 run().catch(console.dir);
 
-
-
 app.get("/", (req, res) => {
   console.log(res.send("BISTRO BOSS SERVER SITE IS RUNNING"));
 });
 app.listen(port, () => {
   console.log(`server is running on this port ${port}`);
 });
-
