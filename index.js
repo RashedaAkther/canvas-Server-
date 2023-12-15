@@ -1,40 +1,20 @@
 const express = require("express");
-const cors = require("cors");
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const cookieParser = require("cookie-parser");
-const jwt = require("jsonwebtoken");
-
-// const SSLCommerzPayment = require("sslcommerz-lts");
-const port = process.env.PORT || 5000;
 require("dotenv").config();
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const jwt = require("jsonwebtoken");
+const port = process.env.PORT || 5000;
 
 const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173","https://canvas-property-project.netlify.app"],
     credentials: true,
   })
 );
 app.use(cookieParser());
-
-// const verifyToken = (req, res, next) => {
-//   const token = req?.cookies?.token;
-//   console.log(token);
-
-//   if (!token) {
-//       return res.status(401).send({ message: 'unauthorized access' })
-//   }
-//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-//       if (err) {
-//         console.log(err);
-//           return res.status(401).send({ message: 'unauthorized access' })
-//       }
-//       req.user = decoded;
-//       console.log(req.user);
-//       next();
-//   })
-// }
 
 const verifyToken = (req, res, next) => {
   const token = req?.cookies?.token;
@@ -68,10 +48,15 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const UserCollection = client.db("RealState").collection("Users");
-    const ReviewsCollection = client.db("RealState").collection("reviews");
+    const ReviewsCollection = client.db("RealState").collection("Reviews");
+    const WhistListCollection = client.db("RealState").collection("Whislist");
+    const OfferCollection = client.db("RealState").collection("Offer");
     const UsersPropertyCollection = client
       .db("RealState")
       .collection("UsersProperty");
+    const AgentSoldPropertyCollection = client
+      .db("RealState")
+      .collection("SoldProperty");
 
     const verifyAdmin = async (req, res, next) => {
       const email = req?.user?.email;
@@ -147,19 +132,74 @@ async function run() {
       const query = { email: email };
       const role = "Agent";
       const agentuser = await UserCollection.findOne(query);
-    
 
       // Update user role to "Agent" if not already
       if (agentuser.role !== role) {
         await UserCollection.updateOne(query, { $set: { role: role } });
       }
-  
-      // Access the properties collection
-
-
       const result = await UsersPropertyCollection.insertOne(User);
       console.log(result);
       return res.send(result);
+    });
+
+    app.post("/AddWhistList", verifyToken, async (req, res) => {
+      const body = req.body;
+      console.log(body);
+      const result = await WhistListCollection.insertOne(body);
+      console.log(result);
+      res.send(result);
+    });
+    app.post("/AddOffer", verifyToken, async (req, res) => {
+      const body = req.body;
+      console.log(body);
+      const result = await OfferCollection.insertOne(body);
+      console.log(result);
+      res.send(result);
+    });
+    app.post("/AddReview", verifyToken, async (req, res) => {
+      const body = req.body;
+
+      console.log(body);
+      const result = await ReviewsCollection.insertOne(body);
+      console.log(result);
+      res.send(result);
+    });
+
+
+    app.post("/Property/click/:id", async (req, res) => {
+
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updatedProperty = await UsersPropertyCollection.findOneAndUpdate(
+        filter,
+        { $inc: { clickCount: 1 } },
+        { returnDocument: 'after' }
+      );
+      console.log(id,filter,updatedProperty);
+      res.send(updatedProperty);
+    });
+    app.get("/myReviews/:email", async (req, res) => {
+      const email = req?.params?.email;
+      const query = { email: email };
+      const result = await ReviewsCollection.find(query).toArray();
+      console.log(result);
+      res.send(result);
+    });
+    app.get("/SingleReviews/:id", async (req, res) => {
+      const id = req?.params?.id;
+      console.log("id", id);
+      const query = { propertyId: id };
+      const result = await ReviewsCollection.find(query).toArray();
+      // console.log(result, query, id);
+      res.send(result);
+    });
+
+    app.get("/UserWhistList/:email", async (req, res) => {
+      const email = req?.params?.email;
+      const query = { UserEmail: email };
+      const result = await WhistListCollection.find(query).toArray();
+      console.log(result);
+      res.send(result);
     });
     app.get("/Users", verifyToken, verifyAdmin, async (req, res) => {
       console.log("cheack to token", req?.user?.email);
@@ -168,7 +208,7 @@ async function run() {
       // console.log(result);
       res.send(result);
     });
-    app.get("/AdminProperties", verifyToken, verifyAdmin, async (req, res) => {
+    app.get("/AdminProperties", verifyToken, async (req, res) => {
       // console.log(req.user);
       const result = await UsersPropertyCollection.find().toArray();
       // console.log(result);
@@ -176,20 +216,40 @@ async function run() {
     });
     app.get("/AdminReviews", verifyToken, verifyAdmin, async (req, res) => {
       // console.log(req.user);
+
       const result = await ReviewsCollection.find().toArray();
       // console.log(result);
       res.send(result);
     });
     app.get("/AgentProperties/:email", verifyToken, async (req, res) => {
       const email = req?.params.email;
-  
+
       const query = { email: email };
 
-      // console.log(req.user);
+      console.log(email, query);
       const result = await UsersPropertyCollection.find(query).toArray();
       console.log(result);
       res.send(result);
     });
+    app.get(
+      "/AgentSoldProperties/:email",
+      verifyToken,
+      verifyAgent,
+      async (req, res) => {
+        const email = req?.params.email;
+
+        const query = {
+          agentemail: email,
+
+          property_status: "sold",
+        };
+
+        console.log(email, query);
+        const result = await OfferCollection.find(query).toArray();
+        console.log(result);
+        res.send(result);
+      }
+    );
 
     app.get("/manageReviews", verifyToken, verifyAdmin, async (req, res) => {
       console.log("cheack to token", req?.user?.email);
@@ -198,11 +258,34 @@ async function run() {
       // console.log(result);
       res.send(result);
     });
-    app.get("/Properties", verifyToken, verifyAdmin, async (req, res) => {
-      // console.log("cheack to token", req?.user?.email);
-      // console.log(req.user);
-      const result = await ReviewsCollection.find().toArray();
-      // console.log(result);
+
+    app.get("/ALlProperties/:id", async (req, res) => {
+      const id = req?.params?.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await UsersPropertyCollection.findOne(query);
+      console.log(id, query);
+
+      res.send(result);
+    });
+    app.get(
+      "/RequestOffer/:email",
+      verifyToken,
+      verifyAgent,
+      async (req, res) => {
+        const email = req?.params?.email;
+        const query = { agentemail: email };
+        const result = await OfferCollection.find(query).toArray();
+        console.log(query);
+        res.send(result);
+      }
+    );
+    app.get("/UserRequestOffer/:email", verifyToken, async (req, res) => {
+      const email = req?.params?.email;
+      const query = { buyerEmail: email };
+      const result = await OfferCollection.find(query).toArray();
+      console.log(query, email);
       res.send(result);
     });
 
@@ -262,41 +345,6 @@ async function run() {
       res.send(result);
     });
 
-    // app.get("/admin-status", verifyToken, async (req, res) => {
-    //   const users = await UserCollection.estimatedDocumentCount();
-    //   // const menusItems = await MenuCollection.estimatedDocumentCount();
-    //   // const orders = await paymentsCollection.estimatedDocumentCount();
-
-    //   // const result = await paymentsCollection
-    //   //   .aggregate([
-    //   //     {
-    //   //       $group: {
-    //   //         _id: null,
-    //   //         totalRevenue: {
-    //   //           $sum: "$price",
-    //   //         },
-    //   //       },
-    //   //     },
-    //   //   ])
-    //   //   .toArray();
-    //   // // console.log(result[0]);
-    //   // const revenue = result.length > 0 ? result[0].totalRevenue : 0;
-
-    //   // const revenue = payments.reduce(
-    //   //   (total, payment) => total + payment.price,
-    //   //   0
-    //   // );
-    //   // const revenuePars = parseFloat(revenue.toFixed(2));
-    //   console.log(users);
-    //   // console.log(users, menusItems, orders, revenue);
-    //   res.send({
-    //     // orders,
-    //     // menusItems,
-    //     users,
-    //     // revenue,
-    //   });
-    // });
-
     app.put("/user-update", verifyToken, verifyAdmin, async (req, res) => {
       const email = req?.query.email;
       const role = req?.body.role;
@@ -336,8 +384,81 @@ async function run() {
         res.send(result);
       }
     );
+    app.put(
+      "/propertyStatus/:id",
+      verifyToken,
+      verifyAdmin,
 
-    app.delete("/User/:id", async (req, res) => {
+      async (req, res) => {
+        const id = req?.params.id;
+        const status = req?.body.property_status;
+        console.log("", id, status);
+        const filter = { _id: new ObjectId(id) };
+
+        const update = {
+          $set: {
+            property_status: status,
+          },
+        };
+        const options = { upsert: true };
+
+        const result = await UsersPropertyCollection.updateOne(
+          filter,
+          update,
+          options
+        );
+        console.log(result);
+        res.send(result);
+      }
+    );
+    app.put(
+      "/agentProperty",
+      verifyToken,
+
+      async (req, res) => {
+        const email = req?.query.email;
+        const status = req?.body.status;
+        console.log("", email);
+        const filter = { email: email, status };
+
+        const update = {
+          $set: {
+            status: status,
+          },
+        };
+        const options = { upsert: false };
+
+        const result = await UserCollection.updateOne(filter, update, options);
+        console.log(result);
+        res.send(result);
+      }
+    );
+
+    app.put(
+      "/statusChange/:id",
+      verifyToken,
+
+      async (req, res) => {
+        console.log("arrman");
+        const id = req?.params.id;
+        const status = req?.body.status;
+        const filter = { _id: new ObjectId(id) };
+
+        const update = {
+          $set: {
+            status: status,
+          },
+        };
+        console.log("", id, filter, update, status);
+        const options = { upsert: true };
+
+        const result = await OfferCollection.updateOne(filter, update, options);
+        console.log(result);
+        res.send(result);
+      }
+    );
+
+    app.delete("/User/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       console.log(id);
       const query = { _id: new ObjectId(id) };
@@ -345,12 +466,40 @@ async function run() {
       console.log(result);
       res.send(result);
     });
-
+    app.delete("/review/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      console.log(id, "idddd");
+      const query = { _id: new ObjectId(id) };
+      const result = await ReviewsCollection.deleteOne(query);
+      console.log(result);
+      res.send(result);
+    });
+    app.delete("/WhistList/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await WhistListCollection.deleteOne(query);
+      console.log(result);
+      res.send(result);
+    });
+    app.delete(
+      "/agentProperty/:id",
+      verifyToken,
+      verifyAgent,
+      async (req, res) => {
+        const id = req.params.id;
+        console.log(id);
+        const query = { _id: new ObjectId(id) };
+        const result = await UsersPropertyCollection.deleteOne(query);
+        console.log(result);
+        res.send(result);
+      }
+    );
     // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
-    // console.log(
-    //   "Pinged your deployment. You successfully connected to MongoDB!"
-    // );
+    await client.db("admin").command({ ping: 1 });
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();

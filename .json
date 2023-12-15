@@ -1,0 +1,73 @@
+[
+    {
+      "image": "https://i.ibb.co/rZz42Ck/property1.jpg",
+      "agent_name": "John Doe",
+      "agent_email": "john.doe@example.com",
+      "rating": 4.5,
+      "review": "Excellent service, highly recommended. Professionalism and expertise exceeded expectations."
+    },
+    {
+      "image": "https://i.ibb.co/rZz42Ck/property1.jpg",
+      "agent_name": "Jane Smith",
+      "agent_email": "jane.smith@example.com",
+      "rating": 4.2,
+      "review": "Responsive and knowledgeable agent. Made the buying process smooth and stress-free."
+    },
+    {
+      "image": "https://i.ibb.co/rZz42Ck/property1.jpg",
+      "agent_name": "Michael Johnson",
+      "agent_email": "michael.johnson@example.com",
+      "rating": 4.8,
+      "review": "Outstanding agent. Helped us find our dream home. Great communication and negotiation skills."
+    },
+    {
+      "image": "https://i.ibb.co/rZz42Ck/property1.jpg",
+      "agent_name": "Emily Williams",
+      "agent_email": "emily.williams@example.com",
+      "rating": 4.0,
+      "review": "Friendly and patient. Addressed all our concerns. A pleasure to work with throughout."
+    },
+    {
+      "image": "https://i.ibb.co/rZz42Ck/property1.jpg",
+      "agent_name": "Daniel Brown",
+      "agent_email": "daniel.brown@example.com",
+      "rating": 4.6,
+      "review": "Efficient and effective. Helped us sell our property quickly. A reliable and trustworthy agent."
+    },
+    {
+      "image": "https://i.ibb.co/rZz42Ck/property1.jpg",
+      "agent_name": "Olivia Davis",
+      "agent_email": "olivia.davis@example.com",
+      "rating": 4.3,
+      "review": "Attentive and knowledgeable. Found us a home that perfectly matched our needs and preferences."
+    },
+    {
+      "image": "https://i.ibb.co/rZz42Ck/property1.jpg",
+      "agent_name": "Christopher Miller",
+      "agent_email": "christopher.miller@example.com",
+      "rating": 4.7,
+      "review": "Exceptional service. Went above and beyond to ensure a smooth and successful real estate transaction."
+    },
+    {
+      "image": "https://i.ibb.co/rZz42Ck/property1.jpg",
+      "agent_name": "Sophia Lee",
+      "agent_email": "sophia.lee@example.com",
+      "rating": 4.1,
+      "review": "Professional and friendly. Guided us through the buying process with expertise and care."
+    },
+    {
+      "image": "https://i.ibb.co/rZz42Ck/property1.jpg",
+      "agent_name": "Matthew Taylor",
+      "agent_email": "matthew.taylor@example.com",
+      "rating": 4.9,
+      "review": "Top-notch service. Highly knowledgeable about the market. A pleasure to work with from start to finish."
+    },
+    {
+      "image": "https://i.ibb.co/rZz42Ck/property1.jpg",
+      "agent_name": "Ava Anderson",
+      "agent_email": "ava.anderson@example.com",
+      "rating": 4.4,
+      "review": "Responsive and reliable. Helped us navigate the selling process smoothly. Would recommend without hesitation."
+    }
+  ]
+  
